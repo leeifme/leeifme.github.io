@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Kubernetes 基础普及分享</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width"
+    />
+    <link rel="stylesheet" type="text/css" href="./css/quasar.min.css" />
+    <link rel="stylesheet" type="text/css" href="./css/pure-min.css" />
+    <link rel="stylesheet" type="text/css" href="./css/spaces.css" />
+    <link rel="stylesheet" type="text/css" href="./css/typo.css" />
+    <link rel="stylesheet" type="text/css" href="./css/devices.min.css" />
+    <link rel="stylesheet" type="text/css" href="./css/gh-fork-ribbon.css" />
+    <link rel="stylesheet" type="text/css" href="./css/nord-dark.css" />
+    <link rel="stylesheet" type="text/css" href="./css/nord-light.css" />
+    <link rel="stylesheet" type="text/css" href="./css/font-nord.css" />
+    <link rel="stylesheet" type="text/css" href="./css/bg-nord.css" />
+    <link rel="stylesheet" type="text/css" href="./css/font-open-color.css" />
+    <link rel="stylesheet" type="text/css" href="./css/bg-open-color.css" />
+    <link rel="stylesheet" type="text/css" href="./css/material-icons.css" />
+    <link rel="stylesheet" type="text/css" href="./css/abs-layout.css" />
+    <link rel="stylesheet" type="text/css" href="./css/text-rect.css" />
+    <link rel="stylesheet" type="text/css" href="./css/text-circle.css" />
+    <link rel="stylesheet" type="text/css" href="./css/card.css" />
+    <link rel="stylesheet" type="text/css" href="./css/lines.css" />
+    <link rel="stylesheet" type="text/css" href="./css/filters.css" />
+    <link rel="stylesheet" type="text/css" href="./fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" href="./css/style.css" />
+  </head>
+  <body>
+    <textarea id="source">
+layout: true
+class: typo, typo-selection
+
+---
+count: false
+class: nord-dark, center, middle
+
+# Kubernetes 那些事儿
+Author: [li.lei@datatom.com](li.lei@datatom.com)
+
+---
+### 前言
+<div class="vue">
+  <q-scroll-area :visible="true" :thumb-style="{right: '2px',
+  borderRadius: '4px',
+  backgroundColor: '#4C566A',
+  width: '4px',
+  opacity: 0.1}" style="height: 470px; font-size: 14px;">
+    <template>
+      <div class="q-px-lg q-pb-md">
+        <q-timeline color="secondary">
+          <q-timeline-entry
+            title="容器技术"
+            subtitle="Step 1"
+            icon="card_travel"
+          >
+            <div>
+              容器技术给应用创造一个完全独立的环境，可以跨平台使用，我认为是每一个开发者需要掌握的技术之一;
+              如何使用容器技术？ <br>
+              1. 开者专注自身业务需求，编写代码<br>
+              2. 编写镜像制作脚本，将应用打包<br>
+              3. 服务器上拉取制作的镜像<br>
+              4. 容器启动，运行服务<br>
+            </div>
+          </q-timeline-entry>
+          <q-timeline-entry
+            title="部署方案"
+            subtitle="Step 2"
+            icon="filter_drama"
+          >
+            <div>
+              容器技术诞生后，成为云计算领域的绝对主角，但容器本身价值并不大，任何互联网领域都涉及到部署，容器编排才重要。创造 docker 的 dotCloud 的公司并没有获取到云计算领域的红利，虽然之后也推出的自家的 docker swarm 应用于容器编排，相比设计理念更为先进的 kubernetes，存在更多的问题，事实上 k8s 已经成为容器编排领域的领头羊。几乎所有的互联网公司，云计算公司都使用 k8s 用于容器编排
+            </div>
+          </q-timeline-entry>
+    
+          <q-timeline-entry
+            title="容器编排"
+            subtitle="Step 3"
+            icon="local_shipping"
+          >
+            <div>
+              简单的说容器编排的意思是：将应用容器化，按照一套规则自动在节点按照用户的需求部署。这套规则由 k8s 规定，开发者应用容器化，按照规则编写编排脚本即可；k8s 适用于复杂的部署，多节点，多应用，系统越复杂，上 k8s 调度起来更方便<br>
+              整体上 k8s 设计理念先进，得益于 Google 领域内的多年实践总结，尽管如此，对开发者而言，掌握 k8s 知识，却有点复杂，主要体现在集群部署，概念繁多
+            </div>
+          </q-timeline-entry>
+        </q-timeline>
+      </div>
+    </template>
+  </q-scroll-area>
+</div>
+
+---
+### 容器技术
+容器技术主要包含四大组成部分以及得益于三点技术
+.abs-layout.left-10.width-38.font-sm[
+.nord-light[
+- .bg-nord12[**镜像 image**] <br>
+  简单的说，包含虚拟运行环境的文件包，是一堆文件的合集，服务在该系统之上能够运行起来，docker 镜像采用了分层架构
+- .bg-nord13[**容器 container**]<br>
+  镜像的运行状态，用来隔离虚拟环境的基础设施。主要包含：镜像、运行环境、指令集
+- .bg-nord14[**网络 network**]<br>
+  是容器应用之间通讯的媒介
+- .bg-nord15[**数据卷 volume**]<br>
+  应用肯定会涉及到数据持久化操作，数据卷就是用于宿主机和容器之间共享或者持久化
+]
+]
+
+.abs-layout.right-5.width-40.font-sm[
+.nord-light[
+- .bg-nord12[**Namespace 命名空间**] <br>
+  作用是隔离；容器本质上是进程，Linux 操作系统提供了 PID, Mount, Network 等 namespace, 使被隔离的进程只能看到当前的环境状态
+- .bg-nord13[**Control Groups 控制组**] <br> 
+  作用是限制计算机资源的使用，首先限制的资源包括：CPU, 内存，磁盘，网络等
+- .bg-nord14[**Union File System 联合文件系统**] <br>
+  作用是实现不同目录挂载到同一目录
+  <br>
+  <br>
+`docker` 正是依靠这三种技术，使的可以为我们创造一个完全隔离的沙箱，这样做的好处是：环境的一致性，方便部署
+]
+]
+
+---
+## Docker
+[Docker](https://www.docker.com/) 是创建容器的工具，是开源的应用容器引擎，采用典型的 `C/S` 架构，基于 Go 语言开发 <br>
+技术关键点： `镜像、容器、仓库`
+
+.abs-layout.left-0.bottom-10.width-55[
+  ![](./static/kubernetes/docker.jpg)
+]
+
+.abs-layout.right-2.bottom-10.width-45[
+  ![](./static/kubernetes/vGuay.png)
+]
+
+---
+class: nord-dark, center, middle
+## WHAT IS KUBERNETES?
+
+---
+### 应用部署模式变迁
+所在领域的位置和作用 & 该事物发展的历程和规律
+<div class="vue">
+  <q-scroll-area :visible="true" :thumb-style="{right: '2px',
+  borderRadius: '4px',
+  backgroundColor: '#4C566A',
+  width: '4px',
+  opacity: 0.1}" style="height: 470px; font-size: 14px;">
+    <template>
+      <div class="q-px-lg q-pb-md">
+        <q-timeline color="secondary">
+          <q-timeline-entry
+            title="物理机"
+            subtitle="Step 1"
+            icon="phonelink"
+          >
+            <div>
+              应用程序直接在物理机上部署、构建和运行；大多数情况下，一台物理机上可能只部署一个应用，成本很高，但资源利用率却不高；针对业务需求变化的响应周期非常长；
+            </div>
+          </q-timeline-entry>
+          <q-timeline-entry
+            title="虚拟化"
+            subtitle="Step 2"
+            icon="view_list"
+          >
+            <div>
+               - 初期：基础计算单元变为VM虚拟机,服务端应用的构建、部署和运行逐步迁移到虚拟机VM上了<br>
+               - 成熟期：openstark发布
+            </div>
+          </q-timeline-entry>
+    
+          <q-timeline-entry
+            title="容器化"
+            subtitle="Step 3"
+            icon="card_travel"
+          >
+            <div>
+              以docker为代表的内核容器技术形成了一种标准的镜像格式；与VM相比，容器具有开发交付流程操作对象同步、执行更为高效资源占用更为集约等优势；计算基本单元由虚拟机变为了容器，越来越多应用的构建、部署与运行选择在容器中进行
+            </div>
+          </q-timeline-entry>
+
+          <q-timeline-entry
+            title="云原生模式"
+            subtitle="Step 3"
+            icon="wb_cloudy"
+          >
+            <div>
+              随着容器技术的岀现以及应用所面临的外部环境的变化,云原生逐渐成为一种应用云化开发、部署和运行的主流方式；<br>
+              核心：借助容器管理自动化平台进行动态编排和资源优化利用
+            </div>
+          </q-timeline-entry>
+        </q-timeline>
+      </div>
+    </template>
+  </q-scroll-area>
+</div>
+
+
+<!-- <a class="github-fork-ribbon right-top" href="https://github.com/1-2-3/remark-it" data-ribbon="Fork me on GitHub" title="Fork me on GitHub">Fork me on GitHub</a>
+ -->
+    </textarea>
+
+    <script src="js/remark.min.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/quasar.umd.min.js"></script>
+    <script>
+      // 预处理：去掉每行开头的空格，否则超过2层锁紧的类会导致解析出BUG
+      var targetTextArea = document.getElementById("source");
+      var lines = targetTextArea.innerHTML.split("\n");
+      targetTextArea.innerHTML = lines.map(line => line.replace(/^(?!\s+[\-|0-9])\s+/, "")).join("\n");
+
+      var slideshow = remark.create({
+        ratio: "4:3", // 窗口比例
+        // 可选：arta, ascetic, dark, default, far, github, googlecode, idea,
+        // ir-black, magula, monokai, rainbow, solarized-dark, solarized-light,
+        // sunburst, tomorrow, tomorrow-night-blue, tomorrow-night-bright,
+        // tomorrow-night, tomorrow-night-eighties, vs, zenburn.
+        highlightStyle: "github",
+        highlightLines: true,
+        countIncrementalSlides: false, // 增量内容是否算一页
+        slideNumberFormat: "", // 若将此参数设置为 ""，将不显示页码
+        navigation: {
+          scroll: false, // 是否允许使用鼠标滚轮翻页
+          touch: false, // （如果是触摸屏）是否允许点击屏幕左边或右边前后翻页
+          click: false // 是否允许鼠标点击屏幕左边或右边前后翻页
+        }
+      });
+
+      // 初始化 VUE
+      for (var el of document.querySelectorAll(".vue")) {
+        new Vue({
+          el: el
+        });
+      }
+
+      // 初始化可点击预览的卡片
+      var preview_win_cards = document.querySelectorAll(".preview-win");
+      for (var card of preview_win_cards) {
+        (clickedCard => {
+          clickedCard.addEventListener("click", e => {
+            var img = clickedCard.querySelector("img");
+            if (img) {
+              window.open(img.src);
+            }
+          });
+        })(card);
+      }
+
+      // 背景色变化兼容 F11 全屏
+      function isFullScreen() {
+        return window.fullScreen || (window.innerWidth == screen.width && window.innerHeight == screen.height);
+      }
+
+      window.addEventListener("resize", () => {
+        if (isFullScreen()) {
+          document.body.style["background-color"] = "#000";
+        } else {
+          document.body.style["background-color"] = "#d7d8d2";
+        }
+      });
+    </script>
+  </body>
+</html>
